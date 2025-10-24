@@ -14,4 +14,5 @@ PyPDF2
 numpy
 pandas
 biomcp-python
+pywebview
 
