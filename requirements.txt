@@ -1,0 +1,16 @@
+quart>=0.17.0
+agentscope
+dashscope
+langchain>=0.0.200
+langchain-community
+langchain-qdrant
+langchain-dashscope
+qdrant-client>=1.0.0
+python-dotenv
+requests
+PyPDF2
+numpy
+# 可选（按需）：
+# pypdf
+# tqdm
+# uvicorn

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="shortcut icon" href="/static/img/favicon.ico" type="image/x-icon">
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* 1. 全局字体 */
+        @font-face {
+            font-family: 'SongJianTi';
+            src: url("{{ url_for('static', filename='font/SongJianTi.ttf') }}") format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'SongJianTi', sans-serif;
+        }
+        body {
+            background-image: url("{{ url_for('static', filename='img/background.png') }}");
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 2. 聊天外框：透明、无阴影、无边框 */
+        .chat-container {
+            width: 80%;              /* 更大 */
+            max-width: 1200px;
+            background: transparent;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 40px;
+        }
+
+        /* 3. 消息列表：透明 */
+        .chat-box {
+            height: 600px;           /* 更高 */
+            overflow-y: auto;
+            background: transparent;
+            border: none;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .btn-send {
+            background-color: rgb(70,122,74) !important;
+            border-color: rgb(70,122,74) !important;
+        }
+        .btn-send:hover {
+            background-color: rgba(70,122,74,.9) !important;
+            border-color: rgba(70,122,74,.9) !important;
+        }
+
+        /* 4. 聊天气泡：毛玻璃 + 动态宽度 */
+        .message-bubble {
+            display: inline-block;
+            padding: 16px 22px;      /* 更大内间距 */
+            border-radius: 22px;
+            max-width: 60%;          /* 更紧凑 */
+            font-size: 20px;         /* 更大字体 */
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            color: #343a40;
+        }
+        .chat-message.user {
+            justify-content: flex-end;
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .chat-message.user .message-bubble {
+            background: rgba(224, 231, 255, 0.35);
+        }
+        .chat-message.bot {
+            justify-content: flex-start;
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .chat-message.bot .message-bubble {
+            background: rgba(232, 234, 246, 0.35);
+        }
+
+        /* 5. Bot 输出统一字体 + 放大 */
+        .bot-output {
+            font-family: 'SongJianTi', sans-serif;
+            font-size: 20px;
+            white-space: pre-wrap;
+            animation: typing-blink 1s steps(1, end) infinite;
+        }
+        @keyframes typing-blink {
+            50% { border-right: 1px solid #343a40; }
+        }
+
+        /* 6. 输入区域放大 */
+        .input-group .form-control,
+        .input-group .btn {
+            font-family: 'SongJianTi', sans-serif;
+            font-size: 20px;
+            padding: 12px 20px;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1 class="text-center">Chatbot</h1>
+        <div id="chat-box" class="chat-box">
+            <!-- 消息动态插入 -->
+        </div>
+        <form id="chat-form">
+             <div class="input-group">
+                <input type="text" id="user-message" class="form-control" placeholder="输入消息..." required>
+                <button class="btn btn-send" type="submit">
+                     <img src="/static/img/paper-plane.png" height="40" alt="发送">
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/static/js/jquery-3.6.0.min.js"></script>
+    <script>
+    $(function () {
+        const chatBox = $('#chat-box');
+        const chatForm = $('#chat-form');
+        const userInput = $('#user-message');
+
+        chatForm.on('submit', async function (e) {
+            e.preventDefault();
+            const msg = userInput.val().trim();
+            if (!msg) return;
+
+            // 用户消息
+            chatBox.append(`<div class="chat-message user"><div class="message-bubble user">${msg}</div></div>`);
+            userInput.val('');
+            chatBox.scrollTop(chatBox[0].scrollHeight);
+
+            // 机器人容器
+            const botDiv = $(`<div class="chat-message bot"><div class="message-bubble bot"><span class="bot-output"></span></div></div>`);
+            chatBox.append(botDiv);
+            const botSpan = botDiv.find('.bot-output');
+            chatBox.scrollTop(chatBox[0].scrollHeight);
+
+            // 流式请求
+            try {
+                const response = await fetch('/stream', {
+                    method: 'POST',
+                    body: new URLSearchParams({message: msg})
+                });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let done = false;
+                while (!done) {
+                    const {value, done: d} = await reader.read();
+                    done = d;
+                    if (value) {
+                        botSpan.append(decoder.decode(value, {stream: true}));
+                        chatBox.scrollTop(chatBox[0].scrollHeight);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                botSpan.append(' [网络错误]');
+            }
+        });
+    });
+    </script>
+</body>
+</html>
