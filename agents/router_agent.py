@@ -49,7 +49,6 @@ def _get_router_agent():
 async def router_agent(user_input: str) -> AsyncGenerator[bytes, None]:
     """使用工具调用进行隐式路由。"""
     router = _get_router_agent()
-
     msg_user = Msg("user", user_input, "user")
 
     # 路由查询

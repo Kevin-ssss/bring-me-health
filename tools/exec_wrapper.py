@@ -43,8 +43,48 @@ async def execute_python_code_local(code: str, timeout: float = 300, **kwargs: A
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_file = os.path.join(temp_dir, f"tmp_{shortuuid.uuid()}.py")
+
+        # 自动为 matplotlib 配置支持中文的字体（优先使用常见的 Windows 字体），
+        # 以避免绘图中的中文显示为方块。若需要自定义字体，可在 Config 中添加路径并传入。
+        font_prefix = r"""
+import os
+try:
+    import matplotlib
+    import matplotlib.font_manager as fm
+    # 优先使用用户配置（若存在）
+    try:
+        from config import Config as _Config
+        font_path_candidates = []
+        if _Config.get('CHINESE_FONT_PATH'):
+            font_path_candidates.append(_Config.get('CHINESE_FONT_PATH'))
+    except Exception:
+        font_path_candidates = []
+
+    # 常见 Windows 字体路径
+    font_path_candidates += [
+        r"C:\\Windows\\Fonts\\msyh.ttc",
+        r"C:\\Windows\\Fonts\\msyh.ttf",
+        r"C:\\Windows\\Fonts\\simhei.ttf",
+        r"C:\\Windows\\Fonts\\simsun.ttc",
+    ]
+
+    for _p in font_path_candidates:
+        try:
+            if os.path.exists(_p):
+                fm.fontManager.addfont(_p)
+                fp = fm.FontProperties(fname=_p)
+                matplotlib.rcParams['font.sans-serif'] = [fp.get_name()]
+                matplotlib.rcParams['axes.unicode_minus'] = False
+                break
+        except Exception:
+            continue
+except Exception:
+    pass
+"""
+
+        # 把前缀和用户代码写入临时文件，使得子进程运行时先应用字体设置
         with open(temp_file, 'w', encoding='utf-8') as f:
-            f.write(code)
+            f.write(font_prefix + '\n' + code)
 
         # Ensure common relative output folders exist in temp_dir so user code
         # that writes to e.g. 'output/...' won't fail with FileNotFoundError.

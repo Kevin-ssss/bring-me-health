@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from datetime import datetime
 import os
 import sys
@@ -79,7 +80,7 @@ def _read_sleep_db_sync() -> ToolResponse:
     column_descriptions = {col: col_desc.get(col, '') for col in df.columns}
     conn.close()
 
-    # 返回 DataFrame 的文本表示和列说明字典
+    # 返回 DataFrame 的文本表示和列说明字典（不写入 last_*.json）
     return ToolResponse(
         content=[
             TextBlock(
