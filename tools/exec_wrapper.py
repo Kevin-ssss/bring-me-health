@@ -46,6 +46,13 @@ async def execute_python_code_local(code: str, timeout: float = 300, **kwargs: A
         with open(temp_file, 'w', encoding='utf-8') as f:
             f.write(code)
 
+        # Ensure common relative output folders exist in temp_dir so user code
+        # that writes to e.g. 'output/...' won't fail with FileNotFoundError.
+        try:
+            os.makedirs(os.path.join(temp_dir, 'output'), exist_ok=True)
+        except Exception:
+            pass
+
         proc = await asyncio.create_subprocess_exec(
             sys.executable,
             '-u',

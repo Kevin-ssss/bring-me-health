@@ -6,9 +6,9 @@ from agentscope.agent import ReActAgent
 from agentscope.formatter import DashScopeChatFormatter
 from agentscope.message import Msg, TextBlock
 from agentscope.model import DashScopeChatModel
-from agentscope.tool import Toolkit, ToolResponse, execute_shell_command, dashscope_text_to_audio
-# 使用项目内的 wrapper 而不是修改 site-packages
+from agentscope.tool import Toolkit, ToolResponse, execute_shell_command
 from tools.exec_wrapper import execute_python_code_local
+from tools.audio_wrapper import dashscope_text_to_audio_local
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 from config import Config
@@ -31,7 +31,7 @@ def _get_output_agent():
         _output_toolkit.register_tool_function(execute_shell_command)
         # 注册时使用预置参数
         _output_toolkit.register_tool_function(
-            dashscope_text_to_audio, preset_kwargs={'api_key': Config['API_KEY']}
+            dashscope_text_to_audio_local, preset_kwargs={'api_key': Config['API_KEY'], 'output_dir': Config['OUTPUT_DIR']}
         )
 
         _output_agent = ReActAgent(
