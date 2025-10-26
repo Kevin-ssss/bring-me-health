@@ -13,7 +13,7 @@ def read_heart_rate_db() -> ToolResponse:
     这是读取用户步数和心率数据的工具函数，当你需要查询用户的运动和心率数据时，可以调用此函数。
     本工具将读取 SQLite 数据库中的 XIAOMI_DAILY_SUMMARY_SAMPLE 表，返回 ToolResponse 对象。
     """
-    
+
     db_path = Config['DB_PATH']
     if not os.path.exists(db_path):
         return ToolResponse(TextBlock(text=f"数据库文件不存在: {db_path}"))

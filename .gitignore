@@ -5,6 +5,9 @@ __pycache__/
 # config.py
 config.py
 
+# ipython notebook
+test.ipynb
+
 # Virtual environments
 .venv/
 venv/

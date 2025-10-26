@@ -1,16 +1,11 @@
 # launcher.py
-# 使用 pywebview 创建本地窗口的启动器：后台启动 Quart 服务并在原生窗口中显示 Web 界面
+# 极简启动器：后台起 Quart，服务就绪后直接打开系统默认浏览器
 
 import multiprocessing
 import time
 import urllib.request
-import sys
 import webbrowser
-
-try:
-    import webview
-except Exception:
-    webview = None
+import sys
 
 from app import app
 
@@ -20,11 +15,12 @@ URL = f'http://{HOST}:{PORT}/'
 
 
 def start_server():
-    # 以非 reloader 模式启动，适合打包后的 exe
+    # 禁用 reloader，适合打包成 exe
     app.run(host=HOST, port=PORT, use_reloader=False)
 
 
-def wait_for_service(timeout=10.0, interval=0.1):
+def wait_for_service(timeout=15.0, interval=0.1):
+    """轮询直到服务返回 200"""
     waited = 0.0
     while waited < timeout:
         try:
@@ -36,47 +32,22 @@ def wait_for_service(timeout=10.0, interval=0.1):
     return False
 
 
-def open_in_browser():
-    webbrowser.open(URL)
-
-
-def open_in_webview():
-    # 创建并启动 pywebview 窗口（阻塞调用）
-    def create():
-        webview.create_window('智能健康系统', URL)
-
-    # webview.start 会阻塞直到窗口关闭
-    webview.start(create)
-
-
 if __name__ == '__main__':
-    # 在 Windows 上，当程序被 PyInstaller 等工具打包为 frozen 可执行文件时，
-    # 需要调用 multiprocessing.freeze_support() 来正确初始化子进程。
     multiprocessing.freeze_support()
-    # 在单独进程中启动服务，避免 Quart 在非主线程尝试注册 signal 处理器（在 exe 中会抛出异常）
-    srv_process = multiprocessing.Process(target=start_server, daemon=True)
-    srv_process.start()
+
+    # 后台启动 Quart
+    srv = multiprocessing.Process(target=start_server, daemon=True)
+    srv.start()
 
     # 等待服务就绪
-    ready = wait_for_service(timeout=15.0)
-
-    if ready and webview is not None:
-        try:
-            open_in_webview()
-        except Exception:
-            # 如果 pywebview 在某些环境（打包或缺少依赖）失败，则回退到系统浏览器
-            open_in_browser()
+    if wait_for_service():
+        webbrowser.open(URL)          # 直接拉起默认浏览器
     else:
-        # pywebview 未安装或服务未就绪：回退到默认浏览器并保持进程
-        open_in_browser()
+        print('服务启动超时，请手动打开', URL, file=sys.stderr)
 
-    # 保持主进程，等待子进程结束或用户退出
+    # 主进程保持运行，直到服务器子进程结束或 Ctrl+C
     try:
-        srv_process.join()
+        srv.join()
     except KeyboardInterrupt:
-        # 在 Windows 上优雅终止子进程
-        try:
-            srv_process.terminate()
-        except Exception:
-            pass
+        srv.terminate()
         sys.exit(0)
