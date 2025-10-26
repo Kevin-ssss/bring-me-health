@@ -4,9 +4,11 @@ import sys
 
 from agentscope.agent import ReActAgent
 from agentscope.formatter import DashScopeChatFormatter
-from agentscope.message import Msg
+from agentscope.message import Msg, TextBlock
 from agentscope.model import DashScopeChatModel
-from agentscope.tool import Toolkit, ToolResponse, execute_python_code, execute_shell_command, dashscope_text_to_audio
+from agentscope.tool import Toolkit, ToolResponse, execute_shell_command, dashscope_text_to_audio
+# 使用项目内的 wrapper 而不是修改 site-packages
+from tools.exec_wrapper import execute_python_code_local
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 from config import Config
@@ -21,10 +23,16 @@ def _get_output_agent():
     global _output_toolkit, _output_agent
     if _output_agent is None:
         _output_toolkit = Toolkit()
-        _output_toolkit.register_tool_function(execute_python_code)
+
+        # 注册项目内的 execute_python_code_local，并传入 output_dir
+        _output_toolkit.register_tool_function(
+            execute_python_code_local, preset_kwargs={'output_dir': Config['OUTPUT_DIR']}
+        )
         _output_toolkit.register_tool_function(execute_shell_command)
         # 注册时使用预置参数
-        _output_toolkit.register_tool_function(dashscope_text_to_audio, preset_kwargs={'api_key': Config['API_KEY']})
+        _output_toolkit.register_tool_function(
+            dashscope_text_to_audio, preset_kwargs={'api_key': Config['API_KEY']}
+        )
 
         _output_agent = ReActAgent(
             name="Watson",
