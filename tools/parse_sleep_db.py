@@ -16,7 +16,7 @@ def read_sleep_db() -> ToolResponse:
     
     db_path = Config['DB_PATH']
     if not os.path.exists(db_path):
-        return ToolResponse(success=False, message=f"数据库文件不存在: {db_path}")
+        return ToolResponse(TextBlock(text=f"数据库文件不存在: {db_path}"))
 
     col_desc = {
         'SLEEP_TIME': 'DATETIME - 时间戳（格式化为日期时间）',
@@ -37,7 +37,7 @@ def read_sleep_db() -> ToolResponse:
     # 检查表是否存在
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='XIAOMI_SLEEP_TIME_SAMPLE'")
     if not cursor.fetchall():
-        return ToolResponse(success=False, message="XIAOMI_SLEEP_TIME_SAMPLE 表不存在。")
+        return ToolResponse(TextBlock(text="XIAOMI_SLEEP_TIME_SAMPLE 表不存在。"))
 
     # 获取列信息
     cursor.execute("PRAGMA table_info(XIAOMI_SLEEP_TIME_SAMPLE)")
