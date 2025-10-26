@@ -63,6 +63,8 @@
 
 ## TODO
 
+短期可实现：
+
 - ✅把向量数据库改为本地存储并实现增量更新
 - ✅搭建 Quart API 框架
 - ✅增强提示词工程以提高 Agent 的输出质量
@@ -76,11 +78,12 @@
 - ✅添加联网搜索功能（如searXNG引擎、博查API）
 - 自然语言生成SQL语句（如DAIL-SQL算法），调用工具来获取对应数据库的数据
 
-## 技术难点
+中长期目标：
 
-- 远程连接可穿戴设备数据库
-- 用户端与管理端分离（用户管理系统）
-- PC端和手机端多端同步
+* 远程连接可穿戴设备数据库
+* 用户端与管理端分离（用户管理系统）
+* PC端与手机端多端同步
+* 基于PyQt5的桌面应用程序
 
 ## Quickly Start
 
@@ -105,7 +108,7 @@ python .\launcher.py
 使用 PyInstaller 打包示例命令（Windows PowerShell）：
 
 ```powershell
-pyinstaller -F launcher.py --onedir -i icon.ico --add-data "templates;templates"  --add-data "static;static" --add-data "data;data" --add-data "output;output"
+pyinstaller -F launcher.py --onedir -i icon.ico --add-data "templates;templates"  --add-data "static;static"
 ```
 
 ## Output Sample
