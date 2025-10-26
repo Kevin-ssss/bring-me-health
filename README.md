@@ -100,14 +100,8 @@ pip install -r requirements.txt
 python .\launcher.py
 ```
 
-使用 PyInstaller 打包为单个 exe（建议把 `launcher.py` 作为入口）：
-
-示例命令（Windows PowerShell）：
+使用 PyInstaller 打包示例命令（Windows PowerShell）：
 
 ```powershell
-# 1) 生成单文件 exe（保留控制台便于调试）
-pyinstaller --onefile --add-data "templates;templates" --add-data "static;static" --add-data "data;data" launcher.py
-
-# 2) 生成无控制台的 GUI exe（正式发行时使用）
-pyinstaller --onefile --noconsole --add-data "templates;templates" --add-data "static;static" --add-data "data;data" launcher.py
+pyinstaller -F launcher.py --onedir -i icon.ico --add-data "templates;templates"  --add-data "static;static" --add-data "data;data" --add-data "output;output"
 ```
