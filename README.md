@@ -65,7 +65,7 @@
 - ✅把向量数据库改为本地存储并实现增量更新
 - ✅搭建 Quart API 框架
 - ✅增强提示词工程以提高 Agent 的输出质量
-- 封装构建脚本为可执行文件
+- ✅封装构建脚本为可执行文件
 - ✅优化前端与网络缓存以防止堵塞、加速响应（如选用轻量化模型或提示简化）
 - ✅增加用于生成 output 的智能体以支持多模态输出
 - 将pdf转markdown后导入向量数据库（MinerU或MarkItDown）
@@ -83,7 +83,7 @@
 
 ## 打包与运行
 
-项目现在提供一个基于 `pywebview` 的本地启动器 `launcher.py`：它会在后台启动 Quart 服务并在原生窗口中加载 `http://127.0.0.1:5000/`，提供类似桌面应用的体验。
+项目现在提供一个本地启动器 `launcher.py`：它会在后台启动 Quart 服务并在加载 `http://127.0.0.1:5000/`。
 
 运行前准备
 
@@ -99,24 +99,14 @@ pip install -r requirements.txt
 python .\launcher.py
 ```
 
-如果本机尚未安装 `pywebview`，脚本会回退到打开系统默认浏览器的方式。
-
 使用 PyInstaller 打包为单个 exe（建议把 `launcher.py` 作为入口）：
-
-- 先在开发机器上测试无误后再打包。为方便调试，先不要使用 `--noconsole`，确认功能正常后再切换为无控制台模式。
 
 示例命令（Windows PowerShell）：
 
 ```powershell
 # 1) 生成单文件 exe（保留控制台便于调试）
-pyinstaller --onefile --add-data "templates;templates" --add-data "static;static" launcher.py
+pyinstaller --onefile --add-data "templates;templates" --add-data "static;static" --add-data "data;data" launcher.py
 
 # 2) 生成无控制台的 GUI exe（正式发行时使用）
-pyinstaller --onefile --noconsole --add-data "templates;templates" --add-data "static;static" launcher.py
+pyinstaller --onefile --noconsole --add-data "templates;templates" --add-data "static;static" --add-data "data;data" launcher.py
 ```
-
-说明与注意事项：
-
-- `--add-data "SRC;DEST"` 用于包含 `templates` 和 `static`（若你的 web 应用依赖这些文件）。Windows 上用分号分隔。若不需要可去掉。
-- 单文件 exe 首次运行会将内容解压到临时目录，服务启动可能需要稍长时间，脚本包含最多 15s 的轮询等待以降低浏览器/窗口过早打开的问题。
-- 在某些环境下，`pywebview` 依赖系统 webview 组件（Edge/IE 或其它后端），若遇到运行时错误，可回退使用系统默认浏览器或考虑使用 cefpython/Qt（依赖较大，打包复杂）。
