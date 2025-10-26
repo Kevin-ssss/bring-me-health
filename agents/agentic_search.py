@@ -15,6 +15,34 @@ from prompt import PROMPT
 from tools.web_search import web_search
 from tools.pubmed_search import pubmed_search
 
+
+# 模块级单例：避免每次调用都创建 Toolkit / ReActAgent
+_search_toolkit = None
+_search_agent = None
+
+def _get_search_agent():
+    """返回单例的 ReActAgent（惰性初始化）。"""
+    global _search_toolkit, _search_agent
+    if _search_agent is None:
+        _search_toolkit = Toolkit()
+        # 注册工具
+        _search_toolkit.register_tool_function(web_search)
+        _search_toolkit.register_tool_function(pubmed_search)
+
+        # 使用 DashScope 作为模型创建 ReAct 智能体（只创建一次）
+        _search_agent = ReActAgent(
+            name="Sherlock",
+            sys_prompt=PROMPT['agentic_search_sys_prompt'],
+            model=DashScopeChatModel(
+                api_key=Config['API_KEY'],
+                model_name=Config['MODEL'],
+            ),
+            formatter=DashScopeChatFormatter(),
+            toolkit=_search_toolkit,
+        )
+    return _search_agent
+
+
 async def agentic_search(demand: str) -> ToolResponse:
     """
     将联网搜索模块与 ReActAgent 集成，实现互联网查询或在线文献库（PubMed）文献库检索的任务处理。
@@ -24,22 +52,8 @@ async def agentic_search(demand: str) -> ToolResponse:
         demand (str):
             对联网搜索或查询在线文献库的需求。
     """
-    # 创建工具箱
-    toolkit = Toolkit()
-    toolkit.register_tool_function(web_search)
-    toolkit.register_tool_function(pubmed_search)
-
-    # 使用 DashScope 作为模型创建 ReAct 智能体
-    search_agent = ReActAgent(
-        name="Sherlock",
-        sys_prompt=PROMPT['agentic_search_sys_prompt'],
-        model=DashScopeChatModel(
-            api_key=Config['API_KEY'],
-            model_name=Config['MODEL'],
-        ),
-        formatter=DashScopeChatFormatter(),
-        toolkit=toolkit,
-    )
+    # 使用模块级单例 agent（惰性初始化），避免重复构建模型和工具箱
+    search_agent = _get_search_agent()
 
     msg_res = await search_agent(Msg("user", demand, "user"))
 

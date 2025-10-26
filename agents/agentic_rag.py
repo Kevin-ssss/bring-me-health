@@ -1,3 +1,4 @@
+
 import asyncio
 import os
 import sys
@@ -15,6 +16,30 @@ from tools.build_sleep_vdbs import get_sleep_knowledge
 from tools.build_heart_rate_vdbs import get_heart_rate_knowledge
 
 
+# 模块级单例：避免每次调用都创建 Toolkit / ReActAgent
+_rag_toolkit = None
+_rag_agent = None
+
+def _get_rag_agent():
+    global _rag_toolkit, _rag_agent
+    if _rag_agent is None:
+        _rag_toolkit = Toolkit()
+        _rag_toolkit.register_tool_function(get_sleep_knowledge)
+        _rag_toolkit.register_tool_function(get_heart_rate_knowledge)
+
+        _rag_agent = ReActAgent(
+            name="Jerry",
+            sys_prompt=PROMPT['agentic_rag_sys_prompt'],
+            model=DashScopeChatModel(
+                api_key=Config['API_KEY'],
+                model_name=Config['MODEL'],
+            ),
+            formatter=DashScopeChatFormatter(),
+            toolkit=_rag_toolkit,
+        )
+    return _rag_agent
+
+
 async def agentic_rag(demand: str) -> ToolResponse:
     """
     将 RAG 模块与 ReActAgent 集成，实现对睡眠健康知识库和心率健康知识库的查询。
@@ -25,22 +50,8 @@ async def agentic_rag(demand: str) -> ToolResponse:
             对知识库检索的需求。
     """
     
-    # 创建工具箱
-    toolkit = Toolkit()
-    toolkit.register_tool_function(get_sleep_knowledge)
-    toolkit.register_tool_function(get_heart_rate_knowledge)
-
-    # 使用 DashScope 作为模型创建 ReAct 智能体
-    rag_agent = ReActAgent(
-        name="Jerry",
-        sys_prompt=PROMPT['agentic_rag_sys_prompt'],
-        model=DashScopeChatModel(
-            api_key=Config['API_KEY'],
-            model_name=Config['MODEL'],
-        ),
-        formatter=DashScopeChatFormatter(),
-        toolkit=toolkit,
-    )
+    # 使用模块级单例 agent（惰性初始化）
+    rag_agent = _get_rag_agent()
 
     msg_res = await rag_agent(Msg("user", demand, "user"))
 

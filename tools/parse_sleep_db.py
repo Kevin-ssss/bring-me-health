@@ -3,17 +3,15 @@ from datetime import datetime
 import os
 import sys
 import pandas as pd
+import asyncio
 from agentscope.message import TextBlock
 from agentscope.tool import ToolResponse
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 from config import Config
 
-def read_sleep_db() -> ToolResponse:
-    """
-    这是读取用户睡眠数据的工具函数，当你需要查询用户的睡眠数据时，可以调用此函数。
-    本工具将读取 SQLite 数据库中的 XIAOMI_SLEEP_TIME_SAMPLE 表，返回 ToolResponse 对象。
-    """
 
+def _read_sleep_db_sync() -> ToolResponse:
+    """同步版本的数据库读取逻辑，便于在线程池中调用。"""
     db_path = Config['DB_PATH']
     if not os.path.exists(db_path):
         return ToolResponse(TextBlock(text=f"数据库文件不存在: {db_path}"))
@@ -37,6 +35,7 @@ def read_sleep_db() -> ToolResponse:
     # 检查表是否存在
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='XIAOMI_SLEEP_TIME_SAMPLE'")
     if not cursor.fetchall():
+        conn.close()
         return ToolResponse(TextBlock(text="XIAOMI_SLEEP_TIME_SAMPLE 表不存在。"))
 
     # 获取列信息
@@ -97,6 +96,20 @@ def read_sleep_db() -> ToolResponse:
             ),
         ]
     )
+
+
+async def read_sleep_db() -> ToolResponse:
+    """
+    异步工具函数：读取用户睡眠数据并返回 ToolResponse。
+    实际的数据库读取在后台线程中执行（通过 asyncio.to_thread），以避免阻塞事件循环。
+
+    Args:
+        无
+
+    Returns:
+        ToolResponse: 包含若干 TextBlock。第一条为记录数统计，第二条为 DataFrame 的字符串表示，第三条为列说明；在出错或找不到数据库/表时返回包含错误信息的 TextBlock。
+    """
+    return await asyncio.to_thread(_read_sleep_db_sync)
         
 
 

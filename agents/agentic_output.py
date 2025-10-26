@@ -12,6 +12,33 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 from config import Config
 from prompt import PROMPT
 
+
+# 模块级单例：避免每次调用都创建 Toolkit / ReActAgent
+_output_toolkit = None
+_output_agent = None
+
+def _get_output_agent():
+    global _output_toolkit, _output_agent
+    if _output_agent is None:
+        _output_toolkit = Toolkit()
+        _output_toolkit.register_tool_function(execute_python_code)
+        _output_toolkit.register_tool_function(execute_shell_command)
+        # 注册时使用预置参数
+        _output_toolkit.register_tool_function(dashscope_text_to_audio, preset_kwargs={'api_key': Config['API_KEY']})
+
+        _output_agent = ReActAgent(
+            name="Watson",
+            sys_prompt=PROMPT['agentic_output_sys_prompt'],
+            model=DashScopeChatModel(
+                api_key=Config['API_KEY'],
+                model_name=Config['MODEL'],
+            ),
+            formatter=DashScopeChatFormatter(),
+            toolkit=_output_toolkit,
+        )
+    return _output_agent
+
+
 async def agentic_output(demand: str) -> ToolResponse:
     """
     将多模态内容生成模块与 ReActAgent 集成，实现对编写和运行Python代码，或将文本转换为音频的任务处理。
@@ -23,23 +50,8 @@ async def agentic_output(demand: str) -> ToolResponse:
         demand (str):
             对编写和运行Python代码，执行Shell命令，或将文本转换为音频的需求。
     """
-    # 创建工具箱
-    toolkit = Toolkit()
-    toolkit.register_tool_function(execute_python_code)
-    toolkit.register_tool_function(execute_shell_command)
-    toolkit.register_tool_function(dashscope_text_to_audio, preset_kwargs={'api_key': Config['API_KEY']})
-    
-    # 使用 DashScope 作为模型创建 ReAct 智能体
-    rag_agent = ReActAgent(
-        name="Watson",
-        sys_prompt=PROMPT['agentic_output_sys_prompt'],
-        model=DashScopeChatModel(
-            api_key=Config['API_KEY'],
-            model_name=Config['MODEL'],
-        ),
-        formatter=DashScopeChatFormatter(),
-        toolkit=toolkit,
-    )
+    # 使用模块级单例 agent（惰性初始化）
+    rag_agent = _get_output_agent()
 
     msg_res = await rag_agent(Msg("user", demand, "user"))
 

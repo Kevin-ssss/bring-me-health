@@ -20,18 +20,16 @@ def get_sleep_knowledge(demands: str,
                        vdbs_path: str = Config['VDBS_PATH'], 
                        collection_name: str = Config['SLEEP_KNOWLEDGE_COLLECTION']) -> ToolResponse:
     """
-    本工具构建/更新睡眠健康知识库并根据demands获取retriever结果。
-    当你需要查询睡眠健康相关的专业知识时，可以调用本工具函数。
-    
+    本工具构建/更新睡眠健康知识库并根据 demands 获取向量检索结果。
+
     Args:
-        demands (str):
-            对知识库检索的需求。
-        pdf_dir (str):
-            PDF 文件目录路径，已默认配置，调用工具时不需要提供。
-        vdbs_path (str):
-            向量数据库存储路径，已默认配置，调用工具时不需要提供。
-        collection_name (str):
-            向量数据库集合名称，已默认配置，调用工具时不需要提供。
+        demands (str): 对知识库检索的需求（查询字符串）。
+        pdf_dir (str): PDF 文件目录路径，已默认配置，调用工具时通常不需要提供。
+        vdbs_path (str): 向量数据库存储路径，已默认配置，调用工具时通常不需要提供。
+        collection_name (str): 向量数据库集合名称，已默认配置，调用工具时通常不需要提供。
+
+    Returns:
+        ToolResponse: 包含若干 TextBlock（通常返回 top-k 相似片段及其 metadata）；出错或无数据时返回包含错误/提示信息的 TextBlock。
     """
 
     pdfs = [f for f in os.listdir(pdf_dir) if f.lower().endswith('.pdf')]

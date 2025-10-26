@@ -7,11 +7,13 @@ from agentscope.tool import ToolResponse
 async def pubmed_search(diseases: str, keywords: str = '') -> ToolResponse:
     """
     使用 BioMCP 提供的 PubMed 文章搜索功能，针对用户的查询需求进行文献检索，并返回搜索结果。
-    当你需要搜索获取相关生物医学学术文章时，可以调用本工具函数。
-    
+
     Args:
-        demand (str):
-            用户的查询需求。
+        diseases (str): 疾病或主题关键字（字符串），用于 PubMed 检索。
+        keywords (str, optional): 额外检索关键词，默认为空字符串。
+
+    Returns:
+        ToolResponse: 包含若干 TextBlock，第一条为统计信息，后续为每篇文章的 PMID/标题/期刊/摘要；出错时返回描述错误的 TextBlock。
     """
     article_request = PubmedRequest(
         diseases=[diseases],

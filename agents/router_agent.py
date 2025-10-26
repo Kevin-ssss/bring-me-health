@@ -19,26 +19,37 @@ from .agentic_query import agentic_query
 from .agentic_search import agentic_search
 from .agentic_output import agentic_output
 
+
+# 模块级单例：避免每次请求都新建 Router Agent
+_router_toolkit = None
+_router_agent = None
+
+def _get_router_agent():
+    global _router_toolkit, _router_agent
+    if _router_agent is None:
+        _router_toolkit = Toolkit()
+        _router_toolkit.register_tool_function(agentic_rag)
+        _router_toolkit.register_tool_function(agentic_query)
+        _router_toolkit.register_tool_function(agentic_search)
+        _router_toolkit.register_tool_function(agentic_output)
+
+        _router_agent = ReActAgent(
+            name="Alice",
+            sys_prompt=PROMPT['router_sys_prompt'],
+            model=DashScopeChatModel(
+                model_name=Config['MODEL'],
+                api_key=Config['API_KEY'],
+            ),
+            formatter=DashScopeChatFormatter(),
+            toolkit=_router_toolkit,
+        )
+    return _router_agent
+
+
 async def router_agent(user_input: str) -> AsyncGenerator[bytes, None]:
     """使用工具调用进行隐式路由。"""
-    toolkit = Toolkit()
-    toolkit.register_tool_function(agentic_rag)
-    toolkit.register_tool_function(agentic_query)
-    toolkit.register_tool_function(agentic_search)
-    toolkit.register_tool_function(agentic_output)
+    router = _get_router_agent()
 
-    # 使用工具模块初始化路由智能体
-    router = ReActAgent(
-        name="Alice",
-        sys_prompt=PROMPT['router_sys_prompt'],
-        model=DashScopeChatModel(
-            model_name=Config['MODEL'],
-            api_key=Config['API_KEY'],
-        ),
-        formatter=DashScopeChatFormatter(),
-        toolkit=toolkit,
-    )
-    
     msg_user = Msg("user", user_input, "user")
 
     # 路由查询
