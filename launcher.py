@@ -1,5 +1,8 @@
 # launcher.py
 # 极简启动器：后台起 Quart，服务就绪后直接打开系统默认浏览器
+import os
+os.environ['OPENBLAS_CORETYPE'] = 'sandybridge'
+os.environ['MKL_CBWR'] = 'AVX'
 
 import multiprocessing
 import time

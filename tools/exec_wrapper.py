@@ -105,6 +105,21 @@ for _p in font_candidates:
         stderr_str = safe_decode(stderr_bytes)
         returncode = proc.returncode
 
+        # 简单持久化日志，便于打包后排查（不打印到控制台）
+        try:
+            log_file = os.path.join(output_dir, 'exec_subproc_output.log')
+            with open(log_file, 'a', encoding='utf-8') as _lf:
+                from datetime import datetime
+
+                _lf.write('--- EXEC SUBPROC OUTPUT %s ---\n' % datetime.now().isoformat())
+                _lf.write(f'returncode={returncode}\n')
+                _lf.write('[STDOUT]\n')
+                _lf.write(stdout_str + '\n')
+                _lf.write('[STDERR]\n')
+                _lf.write(stderr_str + '\n')
+        except Exception:
+            pass
+
     except asyncio.TimeoutError:
         returncode = -1
         stderr_str = f"TimeoutError: code execution exceeded {timeout} seconds."
