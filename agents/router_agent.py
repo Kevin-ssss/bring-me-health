@@ -37,7 +37,7 @@ def _get_router_agent():
             name="Alice",
             sys_prompt=PROMPT['router_sys_prompt'],
             model=DashScopeChatModel(
-                model_name=Config['MODEL'],
+                model_name="qwen3-max",
                 api_key=Config['API_KEY'],
             ),
             formatter=DashScopeChatFormatter(),

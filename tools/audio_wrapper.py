@@ -58,8 +58,29 @@ def dashscope_text_to_audio_local(
             filename = f"tts_{shortuuid.uuid()}.wav"
             file_path = os.path.join(out_dir, filename)
             try:
-                with open(file_path, 'wb') as f:
+                # Write to a temporary file first, flush and fsync, then
+                # atomically replace to avoid partial files or readers seeing
+                # an incompletely written file (helps on Windows when AV is
+                # scanning newly created files).
+                tmp_path = file_path + '.tmp'
+                with open(tmp_path, 'wb') as f:
                     f.write(audio_data)
+                    try:
+                        f.flush()
+                        os.fsync(f.fileno())
+                    except Exception:
+                        # fsync may fail on some filesystems; ignore but proceed
+                        pass
+                try:
+                    # os.replace is atomic on most OSes and will overwrite if exists
+                    os.replace(tmp_path, file_path)
+                except Exception:
+                    # fallback: try move
+                    try:
+                        os.rename(tmp_path, file_path)
+                    except Exception:
+                        # If saving fails, still return base64 data
+                        file_path = None
             except Exception:
                 # If saving fails, still return base64 data
                 file_path = None
