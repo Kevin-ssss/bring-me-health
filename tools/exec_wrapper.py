@@ -127,6 +127,7 @@ except Exception:
 
         # Move non-.py files from temp_dir to output_dir before temp_dir is removed
         moved_files = []
+        move_errors = []
         try:
             for root, _, files in os.walk(temp_dir):
                 for fname in files:
@@ -136,22 +137,57 @@ except Exception:
                     # avoid name collisions by prefixing with uuid if needed
                     dest_name = fname
                     dest = os.path.join(output_dir, dest_name)
-                    try:
-                        if os.path.exists(dest):
-                            # append short uuid to avoid overwrite
-                            base, ext = os.path.splitext(dest_name)
-                            dest_name = f"{base}_{shortuuid.uuid()}{ext}"
-                            dest = os.path.join(output_dir, dest_name)
-                        shutil.move(src, dest)
-                        moved_files.append(dest)
-                    except Exception:
-                        # ignore individual file move errors
-                        pass
-        except Exception:
-            pass
+                    if os.path.exists(dest):
+                        base, ext = os.path.splitext(dest_name)
+                        dest_name = f"{base}_{shortuuid.uuid()}{ext}"
+                        dest = os.path.join(output_dir, dest_name)
+
+                    # Try several strategies because on Windows a just-closed file
+                    # can still be locked by the OS or antivirus. Retry a few times
+                    # with a short sleep, then fall back to copy+remove.
+                    moved = False
+                    last_exc = None
+                    for attempt in range(5):
+                        try:
+                            shutil.move(src, dest)
+                            moved_files.append(dest)
+                            moved = True
+                            break
+                        except Exception as e:
+                            last_exc = e
+                            # small backoff
+                            try:
+                                asyncio.sleep(0.05)
+                            except Exception:
+                                pass
+
+                    if not moved:
+                        # fallback: try copy then remove
+                        try:
+                            shutil.copy2(src, dest)
+                            try:
+                                os.remove(src)
+                            except Exception:
+                                # If remove fails, leave it; temp dir cleanup will remove later
+                                pass
+                            moved_files.append(dest)
+                            moved = True
+                        except Exception as e2:
+                            move_errors.append((src, dest, str(last_exc or e2)))
+                            # give up on this file
+                            continue
+        except Exception as e:
+            move_errors.append((temp_dir, '', str(e)))
 
         if moved_files:
             stdout_str += "\n<saved_files>" + ",".join(moved_files) + "</saved_files>"
+        if move_errors:
+            # Append move errors to stderr so caller can see what happened
+            err_lines = [f"MOVE_ERROR src={s} dest={d} err={m}" for (s, d, m) in move_errors]
+            if stderr_str:
+                stderr_str += "\n" + "\n".join(err_lines)
+            else:
+                stderr_str = "\n".join(err_lines)
 
         return ToolResponse(
             content=[
