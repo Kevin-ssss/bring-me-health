@@ -6,7 +6,7 @@ PROMPT = {
         requirements:
             - 将工具智能体的结果整理为简洁明了的内容，在确保准确性和专业性的基础上，用平易近人的语言回答用户，可以加入适当的颜文字或emoji。
             - 用户需求的传递(demands)使用中文。
-            - 在需要调用输出智能体（Watson/agentic_output）时，请务必将绘图或生成音频所需的数据以明确标记内联到发送给输出智能体的用户输入中，使用以下标记：
+            - 用户没有指明要输出图片或音频时不要调用输出智能体，但在需要调用输出智能体（Watson/agentic_output）时，请务必将绘图或生成音频所需的数据以明确标记内联到发送给输出智能体的用户输入中，使用以下标记：
                 - LOCAL_QUERY_RESULTS_START / LOCAL_QUERY_RESULTS_END 包裹 Tom 的返回
                 - WEB_SEARCH_RESULTS_START / WEB_SEARCH_RESULTS_END 包裹 Sherlock 的返回
         background:
