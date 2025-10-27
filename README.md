@@ -77,13 +77,13 @@
 - ✅调用pubmed接口获取相关领域的文献摘要（如biomcp）
 - ✅添加联网搜索功能（如searXNG引擎、博查API）
 - 自然语言生成SQL语句（如DAIL-SQL算法），调用工具来获取对应数据库的数据
+- 桌面应用程序（PyQt or PySide or Electron）
 
 中长期目标：
 
 * 远程连接可穿戴设备数据库
 * 用户端与管理端分离（用户管理系统）
 * PC端与手机端多端同步
-* 基于PyQt5的桌面应用程序
 
 ## Quickly Start
 
@@ -109,6 +109,12 @@ python .\launcher.py
 
 ```powershell
 pyinstaller -F launcher.py --onedir -i icon.ico --add-data "templates;templates"  --add-data "static;static"
+```
+
+使用 Nuitka 打包示例命令
+
+```powershell
+python -m nuitka --standalone --output-dir=dist_nuitka --include-package=quart --include-data-dir=templates=templates --include-data-dir=static=static --enable-plugin=no-qt launcher.py
 ```
 
 ## Output Sample
