@@ -1,4 +1,4 @@
-# 智能健康指导系统（IoT + RAG + Agent）
+# Bring Me Health：智能健康指导系统
 
 ## 项目概要
 
@@ -10,11 +10,18 @@
 
 主要功能：
 
-- 数据接入：解析和标准化来自设备或本地数据库（示例中为 Gadgetbridge.db）中的心率与睡眠数据；
+- 数据接入：解析和标准化来自设备或本地数据库（示例中为 `Gadgetb.sqlite3`）中的心率与睡眠数据；
 - 知识构建：将 PDF 文档（睡眠/心率相关）通过文本抽取、分块和 embedding，构建/更新 Qdrant 向量数据库；
 - 检索增强对话：在用户提出健康相关问题时，Agent 自动检索最相关的知识片段并将其作为上下文，辅助生成更可靠的答案；
 - 工具化集成：Alice智能体集成了多种工具能力（如 RAG 检索、query 数据库、网络搜索、输出处理），支持可扩展的交互能力；
 - 可扩展输出：支持将工具结果格式化为对话文本，也可调用执行代码或生成音频等扩展工具能力。
+
+外部数据处理与工作流（以小米手环为例）：
+
+- 使用社区工具获取小米手环Auth Key。
+- 使用Gadgetbridge软件基于Auth Key通过蓝牙连接小米手环，读取数据并自动化储存为数据库。
+- 使用坚果云将数据库文件同步到PC端。
+- 使用本软件完成健康管理与指导。
 
 ## 目录结构
 
@@ -37,13 +44,12 @@
   - `pubmed_search.py` — PubMed文献搜索工具。
   - `web_search.py` — 网络搜索工具。
 - `data/`
-  - `backup/` — 数据备份目录，包含健康数据和相关文档。
-    - `HUAWEI_HEALTH/` — 华为健康数据备份，包含详细的健康数据字段描述和样本数据。
-    - `中国儿童阻塞性睡眠呼吸暂停诊断与治疗指南（2020）_倪鑫.pdf` — 医学指南文档。
-    - `中国成人失眠诊断与治疗指南（2023版）.pdf` — 医学指南文档。
-    - `中国高血压患者心率管理多学科专家共识(2021年版)_施仲伟.pdf` — 医学共识文档。
+  - `gadget/` —存放用户健康数据库，通过坚果云与手机端同步。
+
+    - `Gadgetb.sqlite3`—用户健康数据库，sqlite格式。
   - `document/` — 存放用于构建知识库的 PDF 文档（子目录：`sleep/`、`heart_rate/`）。
   - `vdbs/` — 向量数据库与索引文件（如 `indexed_files.json`），由构建脚本生成与维护。
+
     - `collection/` — 向量数据库集合目录。
     - `indexed_files.json` — 已索引文件记录。
     - `meta.json` — 元数据信息。
@@ -55,8 +61,6 @@
 - `templates/` — HTML模板文件。
   - `index.html` — 主页面模板。
 - `requirements.txt` — Python依赖包列表。
-- `.gitignore` — Git忽略文件配置。
-- `基于IoT和RAG的智能睡眠健康指导系统.pptx` — 项目演示文稿。
 
 ## 技术栈
 
@@ -67,7 +71,7 @@
 - DashScope: 作为模型与 embedding 的服务提供者（示例中用于生成文本与 embedding）；如果组织使用其他大模型服务（OpenAI、Anthropic、Qwen 等），也可替换 embedding 与模型实现层。
 - LangChain 与相关 Loader/Splitter: 用于 PDF 文本抽取、分块与文档到向量的流水线构建（`PyPDFLoader`、`RecursiveCharacterTextSplitter` 等）。
 - Qdrant: 向量数据库用于存储文档 embeddings，支持相似度检索（local filesystem-backed 或 qdrant server，取决于部署方式）。
-- Sqlite: 通过 `sqlite3`、自定义解析脚本将 Wearable 数据（如 Gadgetbridge 或手环导出的 DB）转换为可查询的结构化数据。
+- Sqlite: 通过 `sqlite3`、自定义解析脚本将可穿戴设备数据（如 Gadgetbridge 或手环导出的 DB）转换为可查询的结构化数据。
 - Quart: 使用 Quart 提供异步 HTTP 接口，支持流式响应（例如将 Agent 的生成分片推送到前端）。
 - 可扩展工具链: Agentscope 的 `Toolkit` 抽象允许注册外部工具（执行 shell、执行 Python 代码、生成音频等），便于把平台扩展成多模态的自动化系统。
 
@@ -87,7 +91,7 @@
 - ✅把向量数据库改为本地存储并实现增量更新
 - ✅搭建 Quart API 框架
 - ✅增强提示词工程以提高 Agent 的输出质量
-- ✅封装构建脚本为可执行文件
+- 封装构建脚本为可执行文件
 - ✅优化前端与网络缓存以防止堵塞、加速响应（如选用轻量化模型或提示简化）
 - ✅增加用于生成 output 的智能体以支持多模态输出
 - 将pdf转markdown后导入向量数据库（MinerU或MarkItDown）
@@ -97,10 +101,9 @@
 - ✅添加联网搜索功能（如searXNG引擎、博查API）
 - 自然语言生成SQL语句（如DAIL-SQL算法），调用工具来获取对应数据库的数据
 - 桌面应用程序（PyQt or PySide or Electron）
-
-* 远程连接可穿戴设备数据库
-* 用户端与管理端分离（用户管理系统）
-* PC端与手机端多端同步
+- 远程连接可穿戴设备数据库
+- 用户端与管理端分离（用户管理系统）
+- PC端与手机端多端同步
 
 ## Output Sample
 
