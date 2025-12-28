@@ -14,10 +14,16 @@ from agentscope.tool import Toolkit, execute_python_code, execute_shell_command,
 sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
 from config import Config
 from prompt import PROMPT
-from .agentic_rag import agentic_rag
-from .agentic_query import agentic_query
-from .agentic_search import agentic_search
-from .agentic_output import agentic_output
+
+# 导入所有工具函数
+from tools.build_sleep_vdbs import get_sleep_knowledge
+from tools.build_heart_rate_vdbs import get_heart_rate_knowledge
+from tools.parse_sleep_db import read_sleep_db
+from tools.parse_heart_rate_db import read_heart_rate_db
+from tools.web_search import web_search
+from tools.pubmed_search import pubmed_search
+from tools.exec_wrapper import execute_python_code_local
+from tools.audio_wrapper import dashscope_text_to_audio_local
 
 
 # 模块级单例：避免每次请求都新建 Router Agent
@@ -28,11 +34,28 @@ def _get_router_agent():
     global _router_toolkit, _router_agent
     if _router_agent is None:
         _router_toolkit = Toolkit()
-        _router_toolkit.register_tool_function(agentic_rag)
-        _router_toolkit.register_tool_function(agentic_query)
-        _router_toolkit.register_tool_function(agentic_search)
-        _router_toolkit.register_tool_function(agentic_output)
-
+        
+        # 注册所有工具函数
+        # 睡眠和心率知识库查询工具
+        _router_toolkit.register_tool_function(get_sleep_knowledge)
+        _router_toolkit.register_tool_function(get_heart_rate_knowledge)
+        
+        # 用户健康数据查询工具
+        _router_toolkit.register_tool_function(read_sleep_db)
+        _router_toolkit.register_tool_function(read_heart_rate_db)
+        
+        # 网络搜索工具
+        _router_toolkit.register_tool_function(web_search)
+        _router_toolkit.register_tool_function(pubmed_search)
+        
+        # 代码执行和音频生成工具
+        _router_toolkit.register_tool_function(
+            execute_python_code_local, preset_kwargs={'output_dir': Config['OUTPUT_DIR']}
+        )
+        _router_toolkit.register_tool_function(
+            dashscope_text_to_audio_local, preset_kwargs={'api_key': Config['API_KEY'], 'output_dir': Config['OUTPUT_DIR']}
+        )
+        
         _router_agent = ReActAgent(
             name="Alice",
             sys_prompt=PROMPT['router_sys_prompt'],

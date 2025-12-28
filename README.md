@@ -6,38 +6,57 @@
 
 - IoT（Internet of Things）：采集与接入个人设备产生的原始健康数据（如来自手环或手机的心率、睡眠记录、步数等），作为用户行为与生理信号的时间序列输入；
 - RAG（Retrieval-Augmented Generation）：把与心率/睡眠相关的专业 PDF 文献构建为向量知识库（Vector DB），在用户咨询时检索最相关的知识片段，为生成回答提供事实依据与可追溯的证据；
-- Agent（基于 Agentscope）：使用 ReAct 风格的智能代理框架，把用户查询路由到适当的工具（检索、查询本地数据、或生成多模态输出），并在需要时执行代码、生成音频或调用外部工具。
+- Agent（基于 Agentscope）：使用单一智能体Alice，它集成了所有工具功能，能够分析用户需求、制定清晰的工作计划，并直接调用适当的工具（检索、查询本地数据、网络搜索或生成多模态输出），支持可扩展的交互能力；
 
 主要功能：
 
 - 数据接入：解析和标准化来自设备或本地数据库（示例中为 Gadgetbridge.db）中的心率与睡眠数据；
 - 知识构建：将 PDF 文档（睡眠/心率相关）通过文本抽取、分块和 embedding，构建/更新 Qdrant 向量数据库；
 - 检索增强对话：在用户提出健康相关问题时，Agent 自动检索最相关的知识片段并将其作为上下文，辅助生成更可靠的答案；
-- 工具化路由：Agent 可组合多个工具（如 RAG 检索、query 数据库、输出处理），支持可扩展的交互能力；
+- 工具化集成：Alice智能体集成了多种工具能力（如 RAG 检索、query 数据库、网络搜索、输出处理），支持可扩展的交互能力；
 - 可扩展输出：支持将工具结果格式化为对话文本，也可调用执行代码或生成音频等扩展工具能力。
 
 ## 目录结构
 
 - `app.py` — Quart 应用入口，创建应用实例并注册路由蓝本（`router/chat.py`）；用于本地 demo 和 API 调试。
-- `config.py` — 全局配置（示例字典）。包含模型、embedding 配置、向量库路径、PDF 目录和数据库路径等。建议生产环境改为环境变量或密钥管理服务。
+- `launcher.py` — 应用程序启动器，用于运行系统。
 - `prompt.py` — 系统与工具的 Prompt 模板集合，用于驱动 Agentscope Agent 的系统提示与工具调用行为。
+- `prompt_multi_agent.py` — 多智能体系统的提示词模板。
+- `icon.ico` — 应用程序图标。
 - `router/`
   - `chat.py` — 与前端/HTTP 层交互的路由实现，接收用户请求并调用内部路由 Agent 返回流式或完整响应。
 - `agents/`
-  - `router_agent.py` — 用于将用户请求拆解并路由到不同工具的 ReAct Agent 实现，注册工具并驱动 Agent 生命周期。
-  - `agentic_rag.py` — RAG 工具实现：包装对向量数据库的检索逻辑，并把检索结果以 `ToolResponse` 的形式返回给 Agent。
-  - `agentic_query.py` — 针对本地结构化数据（如 SQLite、Gadgetbridge.db）或其他数据源的查询工具。
-  - `agentic_output.py` — 把工具输出格式化为对话消息，支持额外功能（代码执行、文本转语音等）。
+  - `router_agent.py` - Alice智能体：集成了所有工具的单一智能体，负责分析用户问题、制定工作计划并调用相应工具完成任务。支持查询用户健康数据、检索专业知识库、进行网络搜索以及生成多模态内容。
 - `tools/`
   - `build_sleep_vdbs.py` — 把 `data/document/sleep/` 下的 PDF 转为 embedding 并写入 Qdrant 向量库；包含索引去重逻辑（基于文件哈希）。
   - `build_heart_rate_vdbs.py` — 同上但针对心率文档目录。
   - `parse_sleep_db.py` — 解析 wearable/手环的睡眠数据文件（数据库），提取时间序列与事件。
   - `parse_heart_rate_db.py` — 解析心率相关的数据库或存档，输出结构化时间序列。
+  - `audio_wrapper.py` — 音频处理工具，用于生成语音输出。
+  - `exec_wrapper.py` — 执行外部命令的包装器。
+  - `pubmed_search.py` — PubMed文献搜索工具。
+  - `web_search.py` — 网络搜索工具。
 - `data/`
+  - `backup/` — 数据备份目录，包含健康数据和相关文档。
+    - `HUAWEI_HEALTH/` — 华为健康数据备份，包含详细的健康数据字段描述和样本数据。
+    - `中国儿童阻塞性睡眠呼吸暂停诊断与治疗指南（2020）_倪鑫.pdf` — 医学指南文档。
+    - `中国成人失眠诊断与治疗指南（2023版）.pdf` — 医学指南文档。
+    - `中国高血压患者心率管理多学科专家共识(2021年版)_施仲伟.pdf` — 医学共识文档。
   - `document/` — 存放用于构建知识库的 PDF 文档（子目录：`sleep/`、`heart_rate/`）。
   - `vdbs/` — 向量数据库与索引文件（如 `indexed_files.json`），由构建脚本生成与维护。
-  - `user_data/` — 示例或导入的设备本地数据库（例如 `Gadgetbridge.db`）。
-- `static/`, `templates/` — 前端静态资源与模板（如果使用 web 界面）。
+    - `collection/` — 向量数据库集合目录。
+    - `indexed_files.json` — 已索引文件记录。
+    - `meta.json` — 元数据信息。
+- `static/` — 前端静态资源。
+  - `css/` — 样式文件，包含Bootstrap框架。
+  - `font/` — 字体文件，包含宋体和特体字体。
+  - `img/` — 图片资源，包含应用图标和背景图片。
+  - `js/` — JavaScript文件，包含jQuery库。
+- `templates/` — HTML模板文件。
+  - `index.html` — 主页面模板。
+- `requirements.txt` — Python依赖包列表。
+- `.gitignore` — Git忽略文件配置。
+- `基于IoT和RAG的智能睡眠健康指导系统.pptx` — 项目演示文稿。
 
 ## 技术栈
 
@@ -84,38 +103,6 @@
 * 远程连接可穿戴设备数据库
 * 用户端与管理端分离（用户管理系统）
 * PC端与手机端多端同步
-
-## Quickly Start
-
-项目现在提供一个本地启动器 `launcher.py`：它会在后台启动 Quart 服务并在加载 `http://127.0.0.1:5000/`。
-
-方式一：运行launcher.ps1文件（确保已经安装python）
-
-方式二：打包运行
-
-- 安装依赖（建议在虚拟环境中运行）：
-
-```powershell
-pip install -r requirements.txt
-```
-
-基本运行（开发/调试）
-
-```powershell
-python .\launcher.py
-```
-
-使用 PyInstaller 打包示例命令（Windows PowerShell）：
-
-```powershell
-pyinstaller -F launcher.py --onedir -i icon.ico --add-data "templates;templates"  --add-data "static;static"
-```
-
-使用 Nuitka 打包示例命令
-
-```powershell
-python -m nuitka --standalone --output-dir=dist_nuitka --include-package=quart --include-data-dir=templates=templates --include-data-dir=static=static --enable-plugin=no-qt launcher.py
-```
 
 ## Output Sample
 

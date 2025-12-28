@@ -75,3 +75,7 @@ output/
 
 # Ignore python bytecode cache folders in data directories
 **/__pycache__/
+
+# ppt
+*.ppt
+*.pptx
